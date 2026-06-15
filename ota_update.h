@@ -1,7 +1,10 @@
+#include <WiFi.h>
 #include <HTTPUpdate.h>
 #include <Update.h>
-const char* firmware_url = "https://raw.githubusercontent.com/MangoGuy-08032025/Minda_Local_Network/main/client_demo/client_demo.ino.bin";       
-const char* version_url  = "https://raw.githubusercontent.com/MangoGuy-08032025/Minda_Local_Network/main/client_demo/client_version.h";
+#include <HTTPClient.h>
+#define FW_VERSION "10"
+const char* firmware_url = "https://raw.githubusercontent.com/MangoGuy-08032025/Auto_Air_Checking_Ducar/main/Auto_air_checking.ino.bin";
+const char* version_url  = "https://raw.githubusercontent.com/MangoGuy-08032025/Auto_Air_Checking_Ducar/main/version.txt";
 String ota_result = "Nothing";
 bool startOTAUpdate(WiFiClient* client, int contentLength);
 void downloadAndApplyFirmware();

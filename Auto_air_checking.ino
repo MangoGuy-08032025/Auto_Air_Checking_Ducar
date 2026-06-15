@@ -4,8 +4,10 @@
 #include <Wire.h>
 #include "Adafruit_HTU21DF.h"
 #include <EEPROM.h>
+#include "ota_update.h"
 #define EEPROM_SIZE 64  // dung lượng EEPROM giả lập (tối thiểu đủ cho 3 int)
-
+#define DEFAULT_WIFI_OTA    "LDV_Inno"
+#define DEFAULT_PASS_OTA    "1NNovation!"
 // Tạo đối tượng cảm biến
 Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 
@@ -55,6 +57,7 @@ uint32_t time_start = 0;
 uint8_t manual_mode_start = 0;
 int trang_thai_cam_bien = 0;
 int trang_thai_cuoi_cung = 0;
+String current_version = "1";
 struct Config {
   uint16_t do_am_thuc_te_ROM;
   uint16_t do_am_toi_da_ROM;
@@ -129,6 +132,23 @@ void setup() {
   digitalWrite(DEN_DO, LOW);
   digitalWrite(DEN_XANH, LOW);
   digitalWrite(COI, LOW);
+  
+  if ((digitalRead(START_BTN) == LOW) )
+  {
+    WiFi.begin(DEFAULT_WIFI_OTA, DEFAULT_PASS_OTA);
+    while (WiFi.status() != WL_CONNECTED) 
+    {
+      digitalWrite(DEN_XANH, HIGH);
+      digitalWrite(DEN_DO, HIGH);
+      digitalWrite(COI, HIGH);
+    }
+    digitalWrite(COI, LOW);
+    checkAndUpdateFirmware();  // gọi hàm OTA
+    digitalWrite(DEN_DO, HIGH);
+    digitalWrite(COI, HIGH);
+    while(1);
+  }
+
   modbus.configureHoldingRegisters(holdingRegisters, numHoldingRegisters);
   Serial.begin(115200, SERIAL_8N1);
   EEPROM.begin(EEPROM_SIZE);
@@ -148,8 +168,8 @@ void setup() {
     while(millis() < 10000)
     if (trang_thai_cam_bien == 1)
     {
-      Nhay_Den_Do(200);
-      Nhay_Den_Xanh(200);
+      digitalWrite(DEN_DO, HIGH);
+      digitalWrite(DEN_XANH, HIGH);
     }
     }
 
@@ -158,6 +178,8 @@ void setup() {
   holdingRegisters[1] = do_am_toi_thieu;
   holdingRegisters[2] = do_am_toi_da;
   holdingRegisters[3] = thoi_gian_cai_dat;
+  current_version = FW_VERSION;
+  holdingRegisters[10] = current_version.toInt();
 }
 
 void loop() 
@@ -226,7 +248,6 @@ void loop()
   if(holdingRegisters[0] == 2) 
   {
     digitalWrite(VAN_KHI_NEN, HIGH);
-    // digitalWrite(VAN_KHI_NEN_2, HIGH);
     current_time = (uint16_t)((millis()-time_start)/1000);
     holdingRegisters[9] = current_time;
 
@@ -269,7 +290,6 @@ void loop()
             holdingRegisters[0] = RESULT_NG_FULL;
         }
         digitalWrite(VAN_KHI_NEN, LOW);
-        // digitalWrite(VAN_KHI_NEN_2, LOW);
     }
   }
 
@@ -280,7 +300,6 @@ void loop()
     if(digitalRead(STOP_BTN) == LOW)
     {
       digitalWrite(VAN_KHI_NEN, LOW);
-      // digitalWrite(VAN_KHI_NEN_2, LOW);
       holdingRegisters[0] = RESULT_KHONG_HOAN_THANH;
       current_time = 0;
     }
@@ -295,7 +314,7 @@ void loop()
   }
   if ((holdingRegisters[0] == RESULT_KHONG_HOAN_THANH) || (holdingRegisters[0] == RESULT_TUOT_KEP_NG) || (holdingRegisters[0] == RESULT_AP_SUAT_NG) || (holdingRegisters[0] == RESULT_DO_AM_NG) || (holdingRegisters[0] == RESULT_NG_FULL))
   {
-    Nhay_Den_Do(500);
+    digitalWrite(DEN_DO, HIGH);
     digitalWrite(DEN_XANH, LOW);
   }
   else if (holdingRegisters[0] == RESULT_OK)
@@ -305,12 +324,11 @@ void loop()
   }
   else if (holdingRegisters[0] == DANG_TEST)
   {
-    Nhay_Den_Xanh(500);
     digitalWrite(DEN_DO, LOW);
+    digitalWrite(DEN_XANH, HIGH);
   }
   if ((holdingRegisters[0] == RESULT_TUOT_KEP_NG) || (holdingRegisters[0] == RESULT_AP_SUAT_NG))
   {
-    // Nhay_Coi(500);
     digitalWrite(COI, HIGH);
   }
   else
