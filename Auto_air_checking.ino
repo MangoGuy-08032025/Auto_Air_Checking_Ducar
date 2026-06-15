@@ -31,8 +31,8 @@ Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 #define INPUT_PIN_1 33
 #define TIN_HIEU_AP_SUAT 32
 #define TIN_HIEU_KEP 35
-// #define START_BTN 34
-#define START_BTN 12
+#define START_BTN 34
+#define OTA_BTN 12
 #define STOP_BTN 0
 
 #define VAN_KHI_NEN 17
@@ -113,32 +113,27 @@ void readConfig() {
 }
 
 void setup() {
+  Serial.begin(115200, SERIAL_8N1);
   pinMode(INPUT_PIN_0, INPUT);
   pinMode(INPUT_PIN_1, INPUT);
   pinMode(TIN_HIEU_AP_SUAT, INPUT);
   pinMode(TIN_HIEU_KEP, INPUT);
   pinMode(START_BTN, INPUT);
   pinMode(STOP_BTN, INPUT);
+  pinMode(OTA_BTN, INPUT_PULLUP);
   pinMode(VAN_KHI_NEN, OUTPUT);
   pinMode(CHAN_CHUYEN, OUTPUT);
   pinMode(DEN_DO, OUTPUT);
   pinMode(DEN_XANH, OUTPUT);
   pinMode(COI, OUTPUT);
   pinMode(OUTPUT_PIN_5, OUTPUT);
-  digitalWrite(DEN_DO, HIGH);
-  digitalWrite(DEN_XANH, HIGH);
-  digitalWrite(COI, HIGH);
-  delay(2000);
-  digitalWrite(VAN_KHI_NEN, LOW);
-  digitalWrite(DEN_DO, LOW);
-  digitalWrite(DEN_XANH, LOW);
-  digitalWrite(COI, LOW);
-  
   if ((digitalRead(START_BTN) == LOW) )
   {
     WiFi.begin(DEFAULT_WIFI_OTA, DEFAULT_PASS_OTA);
     while (WiFi.status() != WL_CONNECTED) 
     {
+      Serial.print(".");
+      delay(50);
       digitalWrite(DEN_XANH, HIGH);
       digitalWrite(DEN_DO, HIGH);
       digitalWrite(COI, HIGH);
@@ -149,32 +144,27 @@ void setup() {
     digitalWrite(COI, HIGH);
     while(1);
   }
-
-  modbus.configureHoldingRegisters(holdingRegisters, numHoldingRegisters);
-  Serial.begin(115200, SERIAL_8N1);
   EEPROM.begin(EEPROM_SIZE);
   readConfig();
   do_am_thuc_te = config.do_am_thuc_te_ROM;
   do_am_toi_da = config.do_am_toi_da_ROM;
   thoi_gian_cai_dat = config.thoi_gian_cai_dat_ROM;
-  Serial.println(do_am_thuc_te);
-  Serial.println(do_am_toi_da);
-  Serial.println(thoi_gian_cai_dat);
+  modbus.configureHoldingRegisters(holdingRegisters, numHoldingRegisters);
   modbus.begin(MODBUS_UNIT_ID, MODBUS_BAUD, MODBUS_CONFIG);
   Wire.begin(26, 27);
 
   // Khởi tạo cảm biến
   if (!htu.begin()) {
     trang_thai_cam_bien = 1;
-    while(millis() < 10000)
     if (trang_thai_cam_bien == 1)
     {
       digitalWrite(DEN_DO, HIGH);
       digitalWrite(DEN_XANH, HIGH);
+      delay(2000);
     }
-    }
-
-  
+  }
+  digitalWrite(DEN_DO, LOW);
+  digitalWrite(DEN_XANH, LOW);
   // Cấu hình chân INT0 (PD0) làm input
   holdingRegisters[1] = do_am_toi_thieu;
   holdingRegisters[2] = do_am_toi_da;
@@ -337,8 +327,6 @@ void loop()
     digitalWrite(COI, LOW);
   }
   modbus.poll();
-
-
 }
 // python -m esptool --chip esp32 --port COM10 write_flash -z 0x1000 bootloader.bin 0x8000 partition-table.bin 0x10000 firmware.bin
 
