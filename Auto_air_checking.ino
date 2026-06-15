@@ -143,6 +143,7 @@ void setup() {
     }
     digitalWrite(COI, LOW);
     checkAndUpdateFirmware();  // gọi hàm OTA
+    digitalWrite(DEN_XANH, LOW);
     digitalWrite(DEN_DO, HIGH);
     digitalWrite(COI, HIGH);
     while(1);
