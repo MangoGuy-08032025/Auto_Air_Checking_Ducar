@@ -31,7 +31,8 @@ Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 #define INPUT_PIN_1 33
 #define TIN_HIEU_AP_SUAT 32
 #define TIN_HIEU_KEP 35
-#define START_BTN 34
+// #define START_BTN 34
+#define START_BTN 12
 #define STOP_BTN 0
 
 #define VAN_KHI_NEN 17
