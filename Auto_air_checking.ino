@@ -6,8 +6,8 @@
 #include <EEPROM.h>
 #include "ota_update.h"
 #define EEPROM_SIZE 64  // dung lượng EEPROM giả lập (tối thiểu đủ cho 3 int)
-#define DEFAULT_WIFI_OTA    "LDV_Inno"
-#define DEFAULT_PASS_OTA    "1NNovation!"
+#define DEFAULT_WIFI_OTA    "Linh Anh"
+#define DEFAULT_PASS_OTA    "08032025"
 // Tạo đối tượng cảm biến
 Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 
@@ -130,6 +130,9 @@ void setup() {
   if ((digitalRead(START_BTN) == LOW) )
   {
     WiFi.begin(DEFAULT_WIFI_OTA, DEFAULT_PASS_OTA);
+    Serial.print(DEFAULT_WIFI_OTA);
+    Serial.print("-");
+    Serial.println(DEFAULT_PASS_OTA);
     while (WiFi.status() != WL_CONNECTED) 
     {
       Serial.print(".");
