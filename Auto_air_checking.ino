@@ -19,13 +19,18 @@ Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 #define MODBUS_CONFIG SERIAL_8N1
 #define MODBUS_UNIT_ID 1
 
+#define TRANG_THAI_KHOI_TAO 0
+#define BAT_DAU_TEST 1
 #define DANG_TEST 2
 #define RESULT_OK 3
-#define RESULT_TUOT_KEP_NG 4
+#define RESULT_TUOT_TRANG_THAI_NG 4
 #define RESULT_AP_SUAT_NG 5
 #define RESULT_DO_AM_NG 6
 #define RESULT_NG_FULL 7
 #define RESULT_KHONG_HOAN_THANH 8
+
+#define TRANG_THAI_OK 1
+#define TRANG_THAI_NG 0
 
 #define INPUT_PIN_0 25
 #define INPUT_PIN_1 33
@@ -73,33 +78,8 @@ unsigned long coi_previousMillis = 0;
 bool DEN_DO_STATE = LOW;
 bool DEN_XANH_STATE = LOW;
 bool COI_STATE = LOW;
-
-void Nhay_Coi(unsigned long interval) {
-  unsigned long currentMillis = millis();
-  if (currentMillis - coi_previousMillis >= interval) {
-    coi_previousMillis = currentMillis;
-    COI_STATE = !COI_STATE;              // đảo trạng thái
-    digitalWrite(COI, COI_STATE);
-  }
-}
-
-void Nhay_Den_Do(unsigned long interval) {
-  unsigned long currentMillis = millis();
-  if (currentMillis - do_previousMillis >= interval) {
-    do_previousMillis = currentMillis;
-    DEN_DO_STATE = !DEN_DO_STATE;              // đảo trạng thái
-    digitalWrite(DEN_DO, DEN_DO_STATE);
-  }
-}
-void Nhay_Den_Xanh(unsigned long interval) {
-  unsigned long currentMillis = millis();
-  if (currentMillis - xanh_previousMillis >= interval) {
-    xanh_previousMillis = currentMillis;
-    DEN_XANH_STATE = !DEN_XANH_STATE;              // đảo trạng thái
-    digitalWrite(DEN_XANH, DEN_XANH_STATE);
-  }
-}
-
+bool isOn = false;     // trạng thái chân
+unsigned long startMillis = 0; // thời điểm bật
 Config config;  // biến toàn cục
 
 void saveConfig() {
@@ -110,6 +90,24 @@ void saveConfig() {
 
 void readConfig() {
   EEPROM.get(0, config);   // đọc toàn bộ struct từ địa chỉ 0
+}
+
+// Hàm con: bật chân trong 1s rồi tự tắt
+void pulseOneSecond(int pin) {
+  unsigned long currentMillis = millis();
+
+  if (!isOn) {
+    // Bật chân và ghi lại thời điểm
+    digitalWrite(pin, HIGH);
+    isOn = true;
+    startMillis = currentMillis;
+  } else {
+    // Kiểm tra nếu đã qua 1000ms thì tắt
+    if (currentMillis - startMillis >= 1000) {
+      digitalWrite(pin, LOW);
+      isOn = false;
+    }
+  }
 }
 
 void setup() {
@@ -179,68 +177,16 @@ void setup() {
 
 void loop() 
 {
-  if ((holdingRegisters[2] != do_am_toi_da) || (holdingRegisters[3] != thoi_gian_cai_dat))
-  {
-    if (trang_thai_cam_bien == 0)
-    {
-      config.do_am_thuc_te_ROM = (uint16_t)do_am_thuc_te;
-    }
-    else
-    {
-      config.do_am_thuc_te_ROM = holdingRegisters[2] - 1;
-    }
-    
-    config.do_am_toi_da_ROM = holdingRegisters[2];
-    config.thoi_gian_cai_dat_ROM = holdingRegisters[3];
-    saveConfig();
-  }
-  if (holdingRegisters[0] == 1)
+  if (holdingRegisters[0] == BAT_DAU_TEST)
   {
     time_start = millis();
-    holdingRegisters[0] = 2;
+    holdingRegisters[0] = DANG_TEST;
+    do_am_toi_thieu = holdingRegisters[1];
+    do_am_toi_da = holdingRegisters[2];
+    thoi_gian_cai_dat = holdingRegisters[3];
   }
-  do_am_toi_thieu = holdingRegisters[1];
-  do_am_toi_da = holdingRegisters[2];
-  thoi_gian_cai_dat = holdingRegisters[3];
-  if (trang_thai_cam_bien == 0)
-  {
-    float temp = htu.readTemperature();
-    float hum = htu.readHumidity();
-    do_am_thuc_te = (int)hum;
-    nhiet_do_thuc_te = int(temp);
-  }
-
-  holdingRegisters[8] = do_am_thuc_te;
-  holdingRegisters[7] = nhiet_do_thuc_te;
-  if (digitalRead(TIN_HIEU_KEP) == HIGH)
-  {
-    holdingRegisters[4] = 1;
-  }
-  else
-  {
-    holdingRegisters[4] = 0;
-  }
-  
-  if (digitalRead(TIN_HIEU_AP_SUAT) == LOW)
-  {
-    holdingRegisters[5] = 1;
-  }
-  else
-  {
-    holdingRegisters[5] = 0;
-  }
-
-  if ((do_am_toi_thieu <= do_am_thuc_te) && (do_am_toi_da >= do_am_thuc_te))
-  {
-    holdingRegisters[6] = 1;
-  }
-  else
-  {
-    holdingRegisters[6] = 0;
-  }
-
   // ------------------------------------------------------------
-  if(holdingRegisters[0] == 2) 
+  if(holdingRegisters[0] == DANG_TEST) 
   {
     digitalWrite(VAN_KHI_NEN, HIGH);
     current_time = (uint16_t)((millis()-time_start)/1000);
@@ -253,38 +199,36 @@ void loop()
         delay(10);
         if(digitalRead(TIN_HIEU_KEP) == LOW)
         {
-            holdingRegisters[0] = RESULT_TUOT_KEP_NG;
+            holdingRegisters[0] = RESULT_TUOT_TRANG_THAI_NG;
             digitalWrite(CHAN_CHUYEN, HIGH);
             digitalWrite(VAN_KHI_NEN, LOW);
         }
       }
     }
     if (current_time >= thoi_gian_cai_dat)
-    {
-        
-        if ((do_am_thuc_te > do_am_toi_thieu) && (do_am_thuc_te < do_am_toi_da) && (digitalRead(TIN_HIEU_AP_SUAT) == LOW))
-        {
-            holdingRegisters[0] = RESULT_OK;
-            digitalWrite(CHAN_CHUYEN, LOW);
-        }
-        else
-        {
-          digitalWrite(CHAN_CHUYEN, HIGH);
-        }
-
-        if ((do_am_thuc_te < do_am_toi_thieu) || (do_am_thuc_te > do_am_toi_da) )
-        {
-            holdingRegisters[0] = RESULT_DO_AM_NG;
-        }
-        if (digitalRead(TIN_HIEU_AP_SUAT) == HIGH)
-        {
-            holdingRegisters[0] = RESULT_AP_SUAT_NG;
-        }
-        if (((do_am_thuc_te < do_am_toi_thieu) || (do_am_thuc_te > do_am_toi_da)) && (digitalRead(TIN_HIEU_AP_SUAT) == HIGH))
-        {
-            holdingRegisters[0] = RESULT_NG_FULL;
-        }
-        digitalWrite(VAN_KHI_NEN, LOW);
+    {  
+      if ((do_am_thuc_te > do_am_toi_thieu) && (do_am_thuc_te < do_am_toi_da) && (digitalRead(TIN_HIEU_AP_SUAT) == LOW))
+      {
+          holdingRegisters[0] = RESULT_OK;
+          digitalWrite(CHAN_CHUYEN, LOW);
+      }
+      else
+      {
+        digitalWrite(CHAN_CHUYEN, HIGH);
+      }
+      if ((do_am_thuc_te < do_am_toi_thieu) || (do_am_thuc_te > do_am_toi_da) )
+      {
+          holdingRegisters[0] = RESULT_DO_AM_NG;
+      }
+      if (digitalRead(TIN_HIEU_AP_SUAT) == HIGH)
+      {
+          holdingRegisters[0] = RESULT_AP_SUAT_NG;
+      }
+      if (((do_am_thuc_te < do_am_toi_thieu) || (do_am_thuc_te > do_am_toi_da)) && (digitalRead(TIN_HIEU_AP_SUAT) == HIGH))
+      {
+          holdingRegisters[0] = RESULT_NG_FULL;
+      }
+      digitalWrite(VAN_KHI_NEN, LOW);
     }
   }
 
@@ -301,13 +245,13 @@ void loop()
   }
   if (digitalRead(START_BTN) == LOW)
   {
-    if ((holdingRegisters[0] != 1) && (holdingRegisters[0] != 2))
+    if ((holdingRegisters[0] != BAT_DAU_TEST) && (holdingRegisters[0] != DANG_TEST))
     {
       time_start = millis();
-      holdingRegisters[0] = 2;
+      holdingRegisters[0] = DANG_TEST;
     }
   }
-  if ((holdingRegisters[0] == RESULT_KHONG_HOAN_THANH) || (holdingRegisters[0] == RESULT_TUOT_KEP_NG) || (holdingRegisters[0] == RESULT_AP_SUAT_NG) || (holdingRegisters[0] == RESULT_DO_AM_NG) || (holdingRegisters[0] == RESULT_NG_FULL))
+  if ((holdingRegisters[0] == RESULT_KHONG_HOAN_THANH) || (holdingRegisters[0] == RESULT_TUOT_TRANG_THAI_NG) || (holdingRegisters[0] == RESULT_AP_SUAT_NG) || (holdingRegisters[0] == RESULT_DO_AM_NG) || (holdingRegisters[0] == RESULT_NG_FULL))
   {
     digitalWrite(DEN_DO, HIGH);
     digitalWrite(DEN_XANH, LOW);
@@ -322,14 +266,75 @@ void loop()
     digitalWrite(DEN_DO, LOW);
     digitalWrite(DEN_XANH, HIGH);
   }
-  if ((holdingRegisters[0] == RESULT_TUOT_KEP_NG) || (holdingRegisters[0] == RESULT_AP_SUAT_NG))
+  if ((holdingRegisters[0] == RESULT_TUOT_TRANG_THAI_NG) || (holdingRegisters[0] == RESULT_AP_SUAT_NG))
   {
     digitalWrite(COI, HIGH);
   }
+  else if (holdingRegisters[0] == RESULT_OK)
+  {
+    pulseOneSecond(COI);
+    // digitalWrite(COI, LOW);
+  }
+
+
+
+  if ((holdingRegisters[2] != do_am_toi_da) || (holdingRegisters[3] != thoi_gian_cai_dat))
+  {
+    if (trang_thai_cam_bien == 0)
+    {
+      config.do_am_thuc_te_ROM = (uint16_t)do_am_thuc_te;
+    }
+    else
+    {
+      config.do_am_thuc_te_ROM = holdingRegisters[2] - 1;
+    }
+    
+    config.do_am_toi_da_ROM = holdingRegisters[2];
+    config.thoi_gian_cai_dat_ROM = holdingRegisters[3];
+    saveConfig();
+  }
+
+  if (trang_thai_cam_bien == 0)
+  {
+    float temp = htu.readTemperature();
+    float hum = htu.readHumidity();
+    do_am_thuc_te = (int)hum;
+    nhiet_do_thuc_te = int(temp);
+  }
+  holdingRegisters[8] = do_am_thuc_te;
+  holdingRegisters[7] = nhiet_do_thuc_te;
+  if (digitalRead(TIN_HIEU_KEP) == HIGH)
+  {
+    holdingRegisters[4] = TRANG_THAI_OK;
+  }
   else
   {
-    digitalWrite(COI, LOW);
+    holdingRegisters[4] = TRANG_THAI_NG;
   }
+  
+  if (digitalRead(TIN_HIEU_AP_SUAT) == LOW)
+  {
+    holdingRegisters[5] = TRANG_THAI_OK;
+  }
+  else
+  {
+    holdingRegisters[5] = TRANG_THAI_NG;
+  }
+
+  if ((do_am_toi_thieu <= do_am_thuc_te) && (do_am_toi_da >= do_am_thuc_te))
+  {
+    holdingRegisters[6] = TRANG_THAI_OK;
+  }
+  else
+  {
+    holdingRegisters[6] = TRANG_THAI_NG;
+  }
+
+  if (holdingRegisters[0] == TRANG_THAI_KHOI_TAO)
+  {
+    digitalWrite(CHAN_CHUYEN, LOW);
+  }
+
   modbus.poll();
 }
 // python -m esptool --chip esp32 --port COM10 write_flash -z 0x1000 bootloader.bin 0x8000 partition-table.bin 0x10000 firmware.bin
