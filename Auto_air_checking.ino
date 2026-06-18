@@ -318,7 +318,7 @@ void loop()
     nhiet_do_thuc_te = int(temp);
   }
   holdingRegisters[8] = (uint16_t)do_am_thuc_te;
-  holdingRegisters[7] = nhiet_do_thuc_te;
+  holdingRegisters[7] = (uint16_t)nhiet_do_thuc_te;
   if (digitalRead(TIN_HIEU_KEP) == HIGH)
   {
     holdingRegisters[4] = TRANG_THAI_OK;
