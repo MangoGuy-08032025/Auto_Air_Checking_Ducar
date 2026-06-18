@@ -79,7 +79,7 @@ bool DEN_DO_STATE = LOW;
 bool DEN_XANH_STATE = LOW;
 bool COI_STATE = LOW;
 bool isOn = false;     // trạng thái chân
-unsigned long startMillis = 0; // thời điểm bật
+uint16_t startMillis = 0; // thời điểm bật
 Config config;  // biến toàn cục
 
 void saveConfig() {
@@ -94,20 +94,20 @@ void readConfig() {
 
 // Hàm con: bật chân trong 1s rồi tự tắt
 void pulseOneSecond(int pin) {
-  unsigned long currentMillis = millis();
-
-  if (!isOn) {
-    // Bật chân và ghi lại thời điểm
-    digitalWrite(pin, HIGH);
-    isOn = true;
-    startMillis = currentMillis;
-  } else {
-    // Kiểm tra nếu đã qua 1000ms thì tắt
-    if (currentMillis - startMillis >= 1000) {
-      digitalWrite(pin, LOW);
-      isOn = false;
+    if (startMillis < 30)
+    {
+      digitalWrite(COI, HIGH);
+      delay(1);
     }
-  }
+    else
+    {
+      digitalWrite(COI, LOW);
+    }
+    if (startMillis > 30)
+    {
+      startMillis = 30;
+    }
+    startMillis =  startMillis + 1;
 }
 
 void setup() {
@@ -153,18 +153,7 @@ void setup() {
   thoi_gian_cai_dat = config.thoi_gian_cai_dat_ROM;
   modbus.configureHoldingRegisters(holdingRegisters, numHoldingRegisters);
   modbus.begin(MODBUS_UNIT_ID, MODBUS_BAUD, MODBUS_CONFIG);
-  Wire.begin(26, 27);
-
-  // Khởi tạo cảm biến
-  if (!htu.begin()) {
-    trang_thai_cam_bien = 1;
-    if (trang_thai_cam_bien == 1)
-    {
-      digitalWrite(DEN_DO, HIGH);
-      digitalWrite(DEN_XANH, HIGH);
-      delay(2000);
-    }
-  }
+  digitalWrite(COI, LOW);
   digitalWrite(DEN_DO, LOW);
   digitalWrite(DEN_XANH, LOW);
   // Cấu hình chân INT0 (PD0) làm input
@@ -173,12 +162,39 @@ void setup() {
   holdingRegisters[3] = thoi_gian_cai_dat;
   current_version = FW_VERSION;
   holdingRegisters[10] = current_version.toInt();
+  Wire.begin(26, 27);
+  delay(100);
+  // Khởi tạo cảm biến
+  for (int i = 0; i< 5; i++)
+  {
+    if (!htu.begin()) 
+    {
+      trang_thai_cam_bien = 1;
+      if (trang_thai_cam_bien == 1)
+      {
+        digitalWrite(DEN_DO, HIGH);
+        digitalWrite(DEN_XANH, HIGH);
+        digitalWrite(COI, HIGH);
+        delay(2000);
+      }
+    }
+    else
+    {
+      trang_thai_cam_bien = 0;
+      digitalWrite(DEN_XANH, HIGH);
+      delay(2000);
+      break;
+    }
+  }
+
+
 }
 
 void loop() 
 {
   if (holdingRegisters[0] == BAT_DAU_TEST)
   {
+    
     time_start = millis();
     holdingRegisters[0] = DANG_TEST;
     do_am_toi_thieu = holdingRegisters[1];
@@ -188,6 +204,7 @@ void loop()
   // ------------------------------------------------------------
   if(holdingRegisters[0] == DANG_TEST) 
   {
+    startMillis = 0;
     digitalWrite(VAN_KHI_NEN, HIGH);
     current_time = (uint16_t)((millis()-time_start)/1000);
     holdingRegisters[9] = current_time;
@@ -211,6 +228,7 @@ void loop()
       {
           holdingRegisters[0] = RESULT_OK;
           digitalWrite(CHAN_CHUYEN, LOW);
+          
       }
       else
       {
@@ -260,6 +278,7 @@ void loop()
   {
     digitalWrite(DEN_XANH, HIGH);
     digitalWrite(DEN_DO, LOW);
+
   }
   else if (holdingRegisters[0] == DANG_TEST)
   {
@@ -270,13 +289,10 @@ void loop()
   {
     digitalWrite(COI, HIGH);
   }
-  else if (holdingRegisters[0] == RESULT_OK)
+  else if (holdingRegisters[0] == DANG_TEST)
   {
-    pulseOneSecond(COI);
-    // digitalWrite(COI, LOW);
+    digitalWrite(COI, LOW);
   }
-
-
 
   if ((holdingRegisters[2] != do_am_toi_da) || (holdingRegisters[3] != thoi_gian_cai_dat))
   {
@@ -301,7 +317,7 @@ void loop()
     do_am_thuc_te = (int)hum;
     nhiet_do_thuc_te = int(temp);
   }
-  holdingRegisters[8] = do_am_thuc_te;
+  holdingRegisters[8] = (uint16_t)do_am_thuc_te;
   holdingRegisters[7] = nhiet_do_thuc_te;
   if (digitalRead(TIN_HIEU_KEP) == HIGH)
   {
@@ -333,6 +349,12 @@ void loop()
   if (holdingRegisters[0] == TRANG_THAI_KHOI_TAO)
   {
     digitalWrite(CHAN_CHUYEN, LOW);
+  }
+
+  if (holdingRegisters[0] == RESULT_OK)
+  {
+    pulseOneSecond(COI);
+    // digitalWrite(COI, LOW);
   }
 
   modbus.poll();
