@@ -175,7 +175,7 @@ void setup() {
         digitalWrite(DEN_DO, HIGH);
         digitalWrite(DEN_XANH, HIGH);
         digitalWrite(COI, HIGH);
-        delay(2000);
+        delay(1000);
       }
     }
     else
