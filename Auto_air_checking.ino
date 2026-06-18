@@ -192,16 +192,28 @@ void setup() {
 
 void loop() 
 {
+  // Đọc nhiệt độ - độ ẩm
+  if (trang_thai_cam_bien == 0)
+  {
+    float temp = htu.readTemperature();
+    float hum = htu.readHumidity();
+    do_am_thuc_te = (int)hum;
+    nhiet_do_thuc_te = int(temp);
+  }
+  holdingRegisters[8] = (uint16_t)do_am_thuc_te;
+  holdingRegisters[7] = (uint16_t)nhiet_do_thuc_te;
+
+  // Nếu thanh ghi 0 == 1(Bắt đầu test)
   if (holdingRegisters[0] == BAT_DAU_TEST)
   {
-    
     time_start = millis();
     holdingRegisters[0] = DANG_TEST;
     do_am_toi_thieu = holdingRegisters[1];
     do_am_toi_da = holdingRegisters[2];
     thoi_gian_cai_dat = holdingRegisters[3];
   }
-  // ------------------------------------------------------------
+
+  // Nếu thanh ghi 0 == 2 (Đang test)
   if(holdingRegisters[0] == DANG_TEST) 
   {
     startMillis = 0;
@@ -209,6 +221,7 @@ void loop()
     current_time = (uint16_t)((millis()-time_start)/1000);
     holdingRegisters[9] = current_time;
 
+    // Khi đang test mà kẹp bị tuột -> Dừng test, trả kết quả RESULT_TUOT_TRANG_THAI_NG
     if (current_time < thoi_gian_cai_dat)
     {
       if(digitalRead(TIN_HIEU_KEP) == LOW)
@@ -222,38 +235,44 @@ void loop()
         }
       }
     }
+
+    // Khi thời gian vượt quá thời gian cài đặt
     if (current_time >= thoi_gian_cai_dat)
     {  
+      // Nếu độ ẩm thực tế nằm trong khoảng cài đặt và có tín hiệu đủ áp suất -> trả kết quả RESULT_OK
       if ((do_am_thuc_te > do_am_toi_thieu) && (do_am_thuc_te < do_am_toi_da) && (digitalRead(TIN_HIEU_AP_SUAT) == LOW))
       {
           holdingRegisters[0] = RESULT_OK;
           digitalWrite(CHAN_CHUYEN, LOW);
-          
       }
+      // Nếu nếu không đạt kết quả OK thì bật chặn chuyền
       else
       {
         digitalWrite(CHAN_CHUYEN, HIGH);
       }
+      // Nếu độ nằm ngoài ngưỡng thì trả về kết quả RESULT_DO_AM_NG
       if ((do_am_thuc_te < do_am_toi_thieu) || (do_am_thuc_te > do_am_toi_da) )
       {
           holdingRegisters[0] = RESULT_DO_AM_NG;
       }
+      // Nếu không đạt áp suất thì trả về kết quả RESULT_AP_SUAT_NG
       if (digitalRead(TIN_HIEU_AP_SUAT) == HIGH)
       {
           holdingRegisters[0] = RESULT_AP_SUAT_NG;
       }
+      // Nếu không đảm bảo cả áp suất và độ ẩm thì trả về kết quả RESULT_NG_FULL
       if (((do_am_thuc_te < do_am_toi_thieu) || (do_am_thuc_te > do_am_toi_da)) && (digitalRead(TIN_HIEU_AP_SUAT) == HIGH))
       {
           holdingRegisters[0] = RESULT_NG_FULL;
       }
+      // Tắt van test khí
       digitalWrite(VAN_KHI_NEN, LOW);
     }
   }
-
-    
+  // Nếu ấn nút dừng thì trả về kết quả RESULT_KHONG_HOAN_THANH
   if (digitalRead(STOP_BTN) == LOW)
   {
-    delay(5);
+    delay(2);
     if(digitalRead(STOP_BTN) == LOW)
     {
       digitalWrite(VAN_KHI_NEN, LOW);
@@ -261,6 +280,7 @@ void loop()
       current_time = 0;
     }
   }
+  // Nếu ấn nút Start thì cắt đầu test
   if (digitalRead(START_BTN) == LOW)
   {
     if ((holdingRegisters[0] != BAT_DAU_TEST) && (holdingRegisters[0] != DANG_TEST))
@@ -269,31 +289,29 @@ void loop()
       holdingRegisters[0] = DANG_TEST;
     }
   }
+
+  // Nếu kết quả NG thì tắt đèn xanh, sáng đèn đỏ
   if ((holdingRegisters[0] == RESULT_KHONG_HOAN_THANH) || (holdingRegisters[0] == RESULT_TUOT_TRANG_THAI_NG) || (holdingRegisters[0] == RESULT_AP_SUAT_NG) || (holdingRegisters[0] == RESULT_DO_AM_NG) || (holdingRegisters[0] == RESULT_NG_FULL))
   {
     digitalWrite(DEN_DO, HIGH);
     digitalWrite(DEN_XANH, LOW);
+    digitalWrite(COI, HIGH);
   }
+  // Nếu kết quả OK thì tắt đèn đỏ, sáng đèn xanh
   else if (holdingRegisters[0] == RESULT_OK)
   {
     digitalWrite(DEN_XANH, HIGH);
     digitalWrite(DEN_DO, LOW);
-
+    digitalWrite(COI, LOW);
   }
+  // Nếu đang test thì tắt đèn đỏ, sáng đèn xanh
   else if (holdingRegisters[0] == DANG_TEST)
   {
     digitalWrite(DEN_DO, LOW);
     digitalWrite(DEN_XANH, HIGH);
   }
-  if ((holdingRegisters[0] == RESULT_TUOT_TRANG_THAI_NG) || (holdingRegisters[0] == RESULT_AP_SUAT_NG))
-  {
-    digitalWrite(COI, HIGH);
-  }
-  else if (holdingRegisters[0] == DANG_TEST)
-  {
-    digitalWrite(COI, LOW);
-  }
 
+  // Nếu thấy giá trị độ ẩm tối đa và thời gian cài đặt thay đổi thì lưu lại vào ROM
   if ((holdingRegisters[2] != do_am_toi_da) || (holdingRegisters[3] != thoi_gian_cai_dat))
   {
     if (trang_thai_cam_bien == 0)
@@ -304,21 +322,11 @@ void loop()
     {
       config.do_am_thuc_te_ROM = holdingRegisters[2] - 1;
     }
-    
     config.do_am_toi_da_ROM = holdingRegisters[2];
     config.thoi_gian_cai_dat_ROM = holdingRegisters[3];
     saveConfig();
   }
-
-  if (trang_thai_cam_bien == 0)
-  {
-    float temp = htu.readTemperature();
-    float hum = htu.readHumidity();
-    do_am_thuc_te = (int)hum;
-    nhiet_do_thuc_te = int(temp);
-  }
-  holdingRegisters[8] = (uint16_t)do_am_thuc_te;
-  holdingRegisters[7] = (uint16_t)nhiet_do_thuc_te;
+  // Trạng thái kẹp trên Modbus
   if (digitalRead(TIN_HIEU_KEP) == HIGH)
   {
     holdingRegisters[4] = TRANG_THAI_OK;
@@ -327,7 +335,7 @@ void loop()
   {
     holdingRegisters[4] = TRANG_THAI_NG;
   }
-  
+  // Trạng thái áp suất trên Modbus
   if (digitalRead(TIN_HIEU_AP_SUAT) == LOW)
   {
     holdingRegisters[5] = TRANG_THAI_OK;
@@ -336,7 +344,7 @@ void loop()
   {
     holdingRegisters[5] = TRANG_THAI_NG;
   }
-
+  // Trạng thái độ ẩm trên Modbus
   if ((do_am_toi_thieu <= do_am_thuc_te) && (do_am_toi_da >= do_am_thuc_te))
   {
     holdingRegisters[6] = TRANG_THAI_OK;
@@ -346,15 +354,18 @@ void loop()
     holdingRegisters[6] = TRANG_THAI_NG;
   }
 
+  // Nếu thanh ghi 0 ở trạng thái khời tạo thì tắt chặn chuyền, đồng thời, cập nhận giá trị độ ẩm tối thiểu, độ ẩm tối đa và thời gian cài đặt
   if (holdingRegisters[0] == TRANG_THAI_KHOI_TAO)
   {
     digitalWrite(CHAN_CHUYEN, LOW);
+    do_am_toi_thieu = holdingRegisters[1];
+    do_am_toi_da = holdingRegisters[2];
+    thoi_gian_cai_dat = holdingRegisters[3];
   }
-
+  // Nếu kết quả test OK thì bật còi kêu trong vòng 1s
   if (holdingRegisters[0] == RESULT_OK)
   {
     pulseOneSecond(COI);
-    // digitalWrite(COI, LOW);
   }
 
   modbus.poll();
