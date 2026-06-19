@@ -197,6 +197,10 @@ void loop()
   {
     float temp = htu.readTemperature();
     float hum = htu.readHumidity();
+    if (hum < 1.0)
+    {
+      hum = 1.0;
+    }
     do_am_thuc_te = (int)hum;
     if (do_am_thuc_te <= 1) 
     {
