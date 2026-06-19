@@ -198,6 +198,11 @@ void loop()
     float temp = htu.readTemperature();
     float hum = htu.readHumidity();
     do_am_thuc_te = (int)hum;
+    if (do_am_thuc_te <= 1) 
+    {
+      do_am_thuc_te = 1;
+      digitalWrite(OUTPUT_PIN_5, HIGH);
+    }
     nhiet_do_thuc_te = int(temp);
   }
   holdingRegisters[8] = (uint16_t)do_am_thuc_te;
@@ -240,7 +245,7 @@ void loop()
     if (current_time >= thoi_gian_cai_dat)
     {  
       // Nếu độ ẩm thực tế nằm trong khoảng cài đặt và có tín hiệu đủ áp suất -> trả kết quả RESULT_OK
-      if ((do_am_thuc_te > do_am_toi_thieu) && (do_am_thuc_te < do_am_toi_da) && (digitalRead(TIN_HIEU_AP_SUAT) == LOW))
+      if ((do_am_thuc_te < do_am_toi_da) && (digitalRead(TIN_HIEU_AP_SUAT) == LOW))
       {
           holdingRegisters[0] = RESULT_OK;
           digitalWrite(CHAN_CHUYEN, LOW);
@@ -251,7 +256,7 @@ void loop()
         digitalWrite(CHAN_CHUYEN, HIGH);
       }
       // Nếu độ nằm ngoài ngưỡng thì trả về kết quả RESULT_DO_AM_NG
-      if ((do_am_thuc_te < do_am_toi_thieu) || (do_am_thuc_te > do_am_toi_da) )
+      if (do_am_thuc_te > do_am_toi_da)
       {
           holdingRegisters[0] = RESULT_DO_AM_NG;
       }
@@ -261,7 +266,7 @@ void loop()
           holdingRegisters[0] = RESULT_AP_SUAT_NG;
       }
       // Nếu không đảm bảo cả áp suất và độ ẩm thì trả về kết quả RESULT_NG_FULL
-      if (((do_am_thuc_te < do_am_toi_thieu) || (do_am_thuc_te > do_am_toi_da)) && (digitalRead(TIN_HIEU_AP_SUAT) == HIGH))
+      if ((do_am_thuc_te > do_am_toi_da) && (digitalRead(TIN_HIEU_AP_SUAT) == HIGH))
       {
           holdingRegisters[0] = RESULT_NG_FULL;
       }
@@ -345,7 +350,7 @@ void loop()
     holdingRegisters[5] = TRANG_THAI_NG;
   }
   // Trạng thái độ ẩm trên Modbus
-  if ((do_am_toi_thieu <= do_am_thuc_te) && (do_am_toi_da >= do_am_thuc_te))
+  if (do_am_thuc_te <= do_am_toi_da)
   {
     holdingRegisters[6] = TRANG_THAI_OK;
   }
