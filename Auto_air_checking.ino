@@ -94,7 +94,7 @@ void readConfig() {
 
 // Hàm con: bật chân trong 1s rồi tự tắt
 void pulseOneSecond(int pin) {
-    if (startMillis < 30)
+    if (startMillis < 20)
     {
       digitalWrite(COI, HIGH);
       delay(1);
@@ -103,9 +103,9 @@ void pulseOneSecond(int pin) {
     {
       digitalWrite(COI, LOW);
     }
-    if (startMillis > 30)
+    if (startMillis > 20)
     {
-      startMillis = 30;
+      startMillis = 20;
     }
     startMillis =  startMillis + 1;
 }
@@ -309,15 +309,15 @@ void loop()
   // Nếu kết quả OK thì tắt đèn đỏ, sáng đèn xanh
   else if (holdingRegisters[0] == RESULT_OK)
   {
-    digitalWrite(DEN_XANH, HIGH);
-    digitalWrite(DEN_DO, LOW);
-    digitalWrite(COI, LOW);
+    digitalWrite(DEN_XANH, LOW);
+    digitalWrite(DEN_DO, HIGH);
   }
   // Nếu đang test thì tắt đèn đỏ, sáng đèn xanh
   else if (holdingRegisters[0] == DANG_TEST)
   {
     digitalWrite(DEN_DO, LOW);
     digitalWrite(DEN_XANH, HIGH);
+    digitalWrite(COI, LOW);
   }
 
   // Nếu thấy giá trị độ ẩm tối đa và thời gian cài đặt thay đổi thì lưu lại vào ROM
