@@ -28,6 +28,7 @@ Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 #define RESULT_DO_AM_NG 6
 #define RESULT_NG_FULL 7
 #define RESULT_KHONG_HOAN_THANH 8
+#define CHO_HANG_QUA 9
 
 #define TRANG_THAI_OK 1
 #define TRANG_THAI_NG 0
@@ -366,7 +367,7 @@ void loop()
   // Nếu thanh ghi 0 ở trạng thái khời tạo thì tắt chặn chuyền, đồng thời, cập nhận giá trị độ ẩm tối thiểu, độ ẩm tối đa và thời gian cài đặt
   if (holdingRegisters[0] == TRANG_THAI_KHOI_TAO)
   {
-    digitalWrite(CHAN_CHUYEN, LOW);
+    // digitalWrite(CHAN_CHUYEN, LOW);
     do_am_toi_thieu = holdingRegisters[1];
     do_am_toi_da = holdingRegisters[2];
     thoi_gian_cai_dat = holdingRegisters[3];
@@ -379,6 +380,11 @@ void loop()
   if ((holdingRegisters[0] == RESULT_OK) && (digitalRead(TIN_HIEU_CAM_BIEN_QUANG) == HIGH))
   {
     digitalWrite(CHAN_CHUYEN, HIGH);
+  }
+  if (holdingRegisters[0] == CHO_HANG_QUA)
+  {
+    digitalWrite(CHAN_CHUYEN, LOW);
+    holdingRegisters[0] = RESULT_OK;
   }
   modbus.poll();
 }

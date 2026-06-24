@@ -2,7 +2,7 @@
 #include <HTTPUpdate.h>
 #include <Update.h>
 #include <HTTPClient.h>
-#define FW_VERSION "7"
+#define FW_VERSION "8"
 const char* firmware_url = "https://raw.githubusercontent.com/MangoGuy-08032025/Auto_Air_Checking_Ducar/main/Auto_air_checking.ino.bin";
 const char* version_url  = "https://raw.githubusercontent.com/MangoGuy-08032025/Auto_Air_Checking_Ducar/main/version.txt";
 String ota_result = "Nothing";
