@@ -33,7 +33,7 @@ Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 #define TRANG_THAI_NG 0
 
 #define INPUT_PIN_0 25
-#define INPUT_PIN_1 33
+#define TIN_HIEU_CAM_BIEN_QUANG 33
 #define TIN_HIEU_AP_SUAT 32
 #define TIN_HIEU_KEP 35
 #define START_BTN 34
@@ -113,7 +113,7 @@ void pulseOneSecond(int pin) {
 void setup() {
   Serial.begin(115200, SERIAL_8N1);
   pinMode(INPUT_PIN_0, INPUT);
-  pinMode(INPUT_PIN_1, INPUT);
+  pinMode(TIN_HIEU_CAM_BIEN_QUANG, INPUT);
   pinMode(TIN_HIEU_AP_SUAT, INPUT);
   pinMode(TIN_HIEU_KEP, INPUT);
   pinMode(START_BTN, INPUT);
@@ -309,8 +309,8 @@ void loop()
   // Nếu kết quả OK thì tắt đèn đỏ, sáng đèn xanh
   else if (holdingRegisters[0] == RESULT_OK)
   {
-    digitalWrite(DEN_XANH, LOW);
-    digitalWrite(DEN_DO, HIGH);
+    digitalWrite(DEN_XANH, HIGH);
+    digitalWrite(DEN_DO, LOW);
   }
   // Nếu đang test thì tắt đèn đỏ, sáng đèn xanh
   else if (holdingRegisters[0] == DANG_TEST)
@@ -376,8 +376,14 @@ void loop()
   {
     pulseOneSecond(COI);
   }
-
+  if ((holdingRegisters[0] == RESULT_OK) && (digitalRead(TIN_HIEU_CAM_BIEN_QUANG) == HIGH))
+  {
+    digitalWrite(CHAN_CHUYEN, HIGH);
+  }
   modbus.poll();
 }
 // python -m esptool --chip esp32 --port COM10 write_flash -z 0x1000 bootloader.bin 0x8000 partition-table.bin 0x10000 firmware.bin
 
+// khi đang test: đèn xanh
+// không test : OK: xanh  + còi kêu , NG thì đỏ và còi
+// 
