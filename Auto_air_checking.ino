@@ -29,6 +29,7 @@ Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 #define RESULT_NG_FULL 7
 #define RESULT_KHONG_HOAN_THANH 8
 #define CHO_HANG_QUA 9
+#define HANG_DA_DI_QUA 10
 
 #define TRANG_THAI_OK 1
 #define TRANG_THAI_NG 0
@@ -377,14 +378,18 @@ void loop()
   {
     pulseOneSecond(COI);
   }
-  if ((holdingRegisters[0] == RESULT_OK) && (digitalRead(TIN_HIEU_CAM_BIEN_QUANG) == HIGH))
+  if (digitalRead(TIN_HIEU_CAM_BIEN_QUANG) == HIGH)
   {
     digitalWrite(CHAN_CHUYEN, HIGH);
   }
-  if (holdingRegisters[0] == CHO_HANG_QUA)
+  if ((holdingRegisters[0] == CHO_HANG_QUA) && (digitalRead(TIN_HIEU_CAM_BIEN_QUANG) == LOW))
   {
     digitalWrite(CHAN_CHUYEN, LOW);
-    holdingRegisters[0] = RESULT_OK;
+  }
+  if ((holdingRegisters[0] == CHO_HANG_QUA) && (digitalRead(TIN_HIEU_CAM_BIEN_QUANG) == HIGH))
+  {
+    digitalWrite(CHAN_CHUYEN, LOW);
+    holdingRegisters[0] = HANG_DA_DI_QUA;
   }
   modbus.poll();
 }
