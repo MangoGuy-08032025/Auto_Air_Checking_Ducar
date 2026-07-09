@@ -34,8 +34,8 @@ Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 #define TRANG_THAI_OK 1
 #define TRANG_THAI_NG 0
 
-#define INPUT_PIN_0 25
-#define TIN_HIEU_CAM_BIEN_QUANG 33
+#define CAM_BIEN_QUANG_PHAT_HIEN_HANG 25
+#define CAM_BIEN_TU_PHAT_HIEN_PALET 33
 #define TIN_HIEU_AP_SUAT 32
 #define TIN_HIEU_KEP 35
 #define START_BTN 34
@@ -84,6 +84,23 @@ bool isOn = false;     // trạng thái chân
 uint16_t startMillis = 0; // thời điểm bật
 Config config;  // biến toàn cục
 
+
+void blinkPin(int pin, float frequency) 
+{
+  static unsigned long previousMillis = 0;
+  static bool state = LOW;
+
+  unsigned long currentMillis = millis();
+  unsigned long interval = (unsigned long)(1000.0 / (2.0 * frequency)); 
+  // khoảng thời gian bật/tắt = nửa chu kỳ
+
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+    state = !state;
+    digitalWrite(pin, state);
+  }
+}
+
 void saveConfig() {
   EEPROM.put(0, config);   // ghi toàn bộ struct vào địa chỉ 0
   EEPROM.commit();         // bắt buộc để lưu xuống flash
@@ -114,8 +131,8 @@ void pulseOneSecond(int pin) {
 
 void setup() {
   Serial.begin(115200, SERIAL_8N1);
-  pinMode(INPUT_PIN_0, INPUT);
-  pinMode(TIN_HIEU_CAM_BIEN_QUANG, INPUT);
+  pinMode(CAM_BIEN_QUANG_PHAT_HIEN_HANG, INPUT);
+  pinMode(CAM_BIEN_TU_PHAT_HIEN_PALET, INPUT);
   pinMode(TIN_HIEU_AP_SUAT, INPUT);
   pinMode(TIN_HIEU_KEP, INPUT);
   pinMode(START_BTN, INPUT);
@@ -313,12 +330,13 @@ void loop()
   {
     digitalWrite(DEN_XANH, HIGH);
     digitalWrite(DEN_DO, LOW);
+    digitalWrite(COI, LOW);
   }
   // Nếu đang test thì tắt đèn đỏ, sáng đèn xanh
   else if (holdingRegisters[0] == DANG_TEST)
   {
     digitalWrite(DEN_DO, LOW);
-    digitalWrite(DEN_XANH, HIGH);
+    blinkPin(DEN_XANH, 1);
     digitalWrite(COI, LOW);
   }
 
@@ -374,23 +392,31 @@ void loop()
     thoi_gian_cai_dat = holdingRegisters[3];
   }
   // Nếu kết quả test OK thì bật còi kêu trong vòng 1s
-  if (holdingRegisters[0] == RESULT_OK)
-  {
-    pulseOneSecond(COI);
-  }
-  if (digitalRead(TIN_HIEU_CAM_BIEN_QUANG) == HIGH)
+  //  Nếu không có Palet và không có hàng thì kích hoạt STOPPER
+  if ((digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == HIGH) && (digitalRead(CAM_BIEN_QUANG_PHAT_HIEN_HANG) == HIGH))
   {
     digitalWrite(CHAN_CHUYEN, HIGH);
   }
-  if ((holdingRegisters[0] == CHO_HANG_QUA) && (digitalRead(TIN_HIEU_CAM_BIEN_QUANG) == LOW))
+
+  // Nếu máy tính điều khiển cho hàng qua và đang có Palet và đang có hàng, thì ngắt kích hoạt STOPPER
+  if ((holdingRegisters[0] == CHO_HANG_QUA) && (digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == LOW))
   {
     digitalWrite(CHAN_CHUYEN, LOW);
   }
-  if ((holdingRegisters[0] == CHO_HANG_QUA) && (digitalRead(TIN_HIEU_CAM_BIEN_QUANG) == HIGH))
+
+  // Nếu có Palet và có không có hàng thì ngắt kích hoạt stopper
+  if ((digitalRead(CAM_BIEN_QUANG_PHAT_HIEN_HANG) == HIGH) && (digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == LOW))
+  {
+    digitalWrite(CHAN_CHUYEN, LOW);
+  }
+
+  // Nếu đang thực thi lệnh cho hàng qua và thấy không còn Palet thì ngắt kích hoạt Stoper
+  if ((holdingRegisters[0] == CHO_HANG_QUA) && (digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == HIGH) )
   {
     digitalWrite(CHAN_CHUYEN, LOW);
     holdingRegisters[0] = HANG_DA_DI_QUA;
   }
+
   modbus.poll();
 }
 // python -m esptool --chip esp32 --port COM10 write_flash -z 0x1000 bootloader.bin 0x8000 partition-table.bin 0x10000 firmware.bin
