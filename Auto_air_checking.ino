@@ -271,13 +271,13 @@ void loop()
       if ((do_am_thuc_te < do_am_toi_da) && (digitalRead(TIN_HIEU_AP_SUAT) == LOW))
       {
           holdingRegisters[0] = RESULT_OK;
-          digitalWrite(CHAN_CHUYEN, LOW);
+          // digitalWrite(CHAN_CHUYEN, LOW);
       }
       // Nếu nếu không đạt kết quả OK thì bật chặn chuyền
-      else
-      {
-        digitalWrite(CHAN_CHUYEN, HIGH);
-      }
+      // else
+      // {
+      //   digitalWrite(CHAN_CHUYEN, HIGH);
+      // }
       // Nếu độ nằm ngoài ngưỡng thì trả về kết quả RESULT_DO_AM_NG
       if (do_am_thuc_te > do_am_toi_da)
       {
@@ -386,22 +386,15 @@ void loop()
   // Nếu thanh ghi 0 ở trạng thái khời tạo thì tắt chặn chuyền, đồng thời, cập nhận giá trị độ ẩm tối thiểu, độ ẩm tối đa và thời gian cài đặt
   if (holdingRegisters[0] == TRANG_THAI_KHOI_TAO)
   {
-    // digitalWrite(CHAN_CHUYEN, LOW);
     do_am_toi_thieu = holdingRegisters[1];
     do_am_toi_da = holdingRegisters[2];
     thoi_gian_cai_dat = holdingRegisters[3];
   }
   // Nếu kết quả test OK thì bật còi kêu trong vòng 1s
   //  Nếu không có Palet và không có hàng thì kích hoạt STOPPER
-  if ((digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == HIGH) && (digitalRead(CAM_BIEN_QUANG_PHAT_HIEN_HANG) == HIGH))
+  if (digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == HIGH)
   {
     digitalWrite(CHAN_CHUYEN, HIGH);
-  }
-
-  // Nếu máy tính điều khiển cho hàng qua và đang có Palet và đang có hàng, thì ngắt kích hoạt STOPPER
-  if ((holdingRegisters[0] == CHO_HANG_QUA) && (digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == LOW))
-  {
-    digitalWrite(CHAN_CHUYEN, LOW);
   }
 
   // Nếu có Palet và có không có hàng thì ngắt kích hoạt stopper
@@ -413,8 +406,29 @@ void loop()
   // Nếu đang thực thi lệnh cho hàng qua và thấy không còn Palet thì ngắt kích hoạt Stoper
   if ((holdingRegisters[0] == CHO_HANG_QUA) && (digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == HIGH) )
   {
-    digitalWrite(CHAN_CHUYEN, LOW);
     holdingRegisters[0] = HANG_DA_DI_QUA;
+  }
+  
+  if (holdingRegisters[0] == RESULT_OK)
+  {
+    digitalWrite(CHAN_CHUYEN, LOW);
+    if ((digitalRead(CAM_BIEN_QUANG_PHAT_HIEN_HANG) == HIGH) && (digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == HIGH))
+    {
+        holdingRegisters[0] = HANG_DA_DI_QUA;
+    }
+  }
+
+  if (holdingRegisters[0] == HANG_DA_DI_QUA)
+  {
+    if ((digitalRead(CAM_BIEN_QUANG_PHAT_HIEN_HANG) == HIGH) && (digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == LOW))
+    {
+      digitalWrite(CHAN_CHUYEN, LOW);
+    }
+    else
+    {
+      digitalWrite(CHAN_CHUYEN, HIGH);
+    }
+
   }
 
   modbus.poll();
