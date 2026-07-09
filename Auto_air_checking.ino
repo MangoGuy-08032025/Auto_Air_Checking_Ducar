@@ -398,10 +398,10 @@ void loop()
   }
 
   // Nếu có Palet và có không có hàng thì ngắt kích hoạt stopper
-  if ((digitalRead(CAM_BIEN_QUANG_PHAT_HIEN_HANG) == HIGH) && (digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == LOW))
-  {
-    digitalWrite(CHAN_CHUYEN, LOW);
-  }
+  // if ((digitalRead(CAM_BIEN_QUANG_PHAT_HIEN_HANG) == HIGH) && (digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == LOW))
+  // {
+  //   digitalWrite(CHAN_CHUYEN, LOW);
+  // }
 
   // Nếu đang thực thi lệnh cho hàng qua và thấy không còn Palet thì ngắt kích hoạt Stoper
   if ((holdingRegisters[0] == CHO_HANG_QUA) && (digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == HIGH) )
