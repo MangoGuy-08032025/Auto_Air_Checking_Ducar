@@ -412,7 +412,7 @@ void loop()
   if (holdingRegisters[0] == RESULT_OK)
   {
     digitalWrite(CHAN_CHUYEN, LOW);
-    if ((digitalRead(CAM_BIEN_QUANG_PHAT_HIEN_HANG) == HIGH) && (digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == HIGH))
+    if ( digitalRead(CAM_BIEN_TU_PHAT_HIEN_PALET) == HIGH)
     {
         holdingRegisters[0] = HANG_DA_DI_QUA;
     }
