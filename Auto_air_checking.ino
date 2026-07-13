@@ -66,6 +66,9 @@ uint8_t manual_mode_start = 0;
 int trang_thai_cam_bien = 0;
 int trang_thai_cuoi_cung = 0;
 String current_version = "1";
+int trang_thai_coi = 0;
+int can_nhay = 0;
+unsigned long thoi_diem_bat_dau_nhay = 0;
 struct Config {
   uint16_t do_am_thuc_te_ROM;
   uint16_t do_am_toi_da_ROM;
@@ -81,19 +84,21 @@ bool DEN_DO_STATE = LOW;
 bool DEN_XANH_STATE = LOW;
 bool COI_STATE = LOW;
 bool isOn = false;     // trạng thái chân
-uint16_t startMillis = 0; // thời điểm bật
+unsigned long startMillis = 0; // thời điểm bật
 Config config;  // biến toàn cục
-
+unsigned long previousMillis = 0;
 
 void blinkPin(int pin, float frequency) 
 {
-  static unsigned long previousMillis = 0;
-  static bool state = LOW;
+  bool state = LOW;
 
   unsigned long currentMillis = millis();
   unsigned long interval = (unsigned long)(1000.0 / (2.0 * frequency)); 
   // khoảng thời gian bật/tắt = nửa chu kỳ
-
+  if (currentMillis < previousMillis)
+  {
+    previousMillis = currentMillis;
+  }
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
     state = !state;
@@ -112,7 +117,7 @@ void readConfig() {
 }
 
 // Hàm con: bật chân trong 1s rồi tự tắt
-void pulseOneSecond(int pin) {
+void pulseOneSecond() {
     if (startMillis < 20)
     {
       digitalWrite(COI, HIGH);
@@ -128,6 +133,7 @@ void pulseOneSecond(int pin) {
     }
     startMillis =  startMillis + 1;
 }
+
 
 void setup() {
   Serial.begin(115200, SERIAL_8N1);
@@ -330,7 +336,7 @@ void loop()
   {
     digitalWrite(DEN_XANH, HIGH);
     digitalWrite(DEN_DO, LOW);
-    digitalWrite(COI, LOW);
+    pulseOneSecond();
   }
   // Nếu đang test thì tắt đèn đỏ, sáng đèn xanh
   else if (holdingRegisters[0] == DANG_TEST)
@@ -338,6 +344,7 @@ void loop()
     digitalWrite(DEN_DO, LOW);
     blinkPin(DEN_XANH, 1);
     digitalWrite(COI, LOW);
+    can_nhay = 0;
   }
 
   // Nếu thấy giá trị độ ẩm tối đa và thời gian cài đặt thay đổi thì lưu lại vào ROM
