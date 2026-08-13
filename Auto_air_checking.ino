@@ -18,7 +18,6 @@ Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 #define MODBUS_BAUD 115200
 #define MODBUS_CONFIG SERIAL_8N1
 #define MODBUS_UNIT_ID 1
-
 #define TRANG_THAI_KHOI_TAO 0
 #define BAT_DAU_TEST 1
 #define DANG_TEST 2
@@ -30,7 +29,6 @@ Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 #define RESULT_KHONG_HOAN_THANH 8
 #define CHO_HANG_QUA 9
 #define HANG_DA_DI_QUA 10
-
 #define TRANG_THAI_OK 1
 #define TRANG_THAI_NG 0
 
@@ -67,7 +65,6 @@ int trang_thai_cam_bien = 0;
 int trang_thai_cuoi_cung = 0;
 String current_version = "1";
 int trang_thai_coi = 0;
-int can_nhay = 0;
 unsigned long thoi_diem_bat_dau_nhay = 0;
 struct Config {
   uint16_t do_am_thuc_te_ROM;
@@ -118,20 +115,16 @@ void readConfig() {
 
 // Hàm con: bật chân trong 1s rồi tự tắt
 void pulseOneSecond() {
-    if (startMillis < 20)
+    if (startMillis < 50)
     {
       digitalWrite(COI, HIGH);
       delay(1);
     }
-    else
-    {
-      digitalWrite(COI, LOW);
-    }
-    if (startMillis > 20)
-    {
-      startMillis = 20;
-    }
     startMillis =  startMillis + 1;
+    if (startMillis > 100)
+    {
+      startMillis = 100;
+    }
 }
 
 
@@ -211,8 +204,9 @@ void setup() {
       break;
     }
   }
-
-
+  digitalWrite(COI, LOW);
+  digitalWrite(DEN_DO, LOW);
+  digitalWrite(DEN_XANH, LOW);
 }
 
 void loop() 
@@ -344,7 +338,6 @@ void loop()
     digitalWrite(DEN_DO, LOW);
     blinkPin(DEN_XANH, 1);
     digitalWrite(COI, LOW);
-    can_nhay = 0;
   }
 
   // Nếu thấy giá trị độ ẩm tối đa và thời gian cài đặt thay đổi thì lưu lại vào ROM
