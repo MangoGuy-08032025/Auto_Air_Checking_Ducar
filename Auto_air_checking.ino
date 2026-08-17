@@ -120,6 +120,10 @@ void pulseOneSecond() {
       digitalWrite(COI, HIGH);
       delay(1);
     }
+    else
+    {
+      digitalWrite(COI, LOW);
+    }
     startMillis =  startMillis + 1;
     if (startMillis > 100)
     {
