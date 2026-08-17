@@ -98,6 +98,7 @@ void blinkPin(int pin, float frequency)
   }
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
+    state = digitalRead(pin);
     state = !state;
     digitalWrite(pin, state);
   }
@@ -115,7 +116,7 @@ void readConfig() {
 
 // Hàm con: bật chân trong 1s rồi tự tắt
 void pulseOneSecond() {
-    if (startMillis < 50)
+    if (startMillis < 30)
     {
       digitalWrite(COI, HIGH);
       delay(1);
@@ -210,7 +211,7 @@ void setup() {
   }
   digitalWrite(COI, LOW);
   digitalWrite(DEN_DO, LOW);
-  digitalWrite(DEN_XANH, LOW);
+  digitalWrite(DEN_XANH, HIGH);
 }
 
 void loop() 
