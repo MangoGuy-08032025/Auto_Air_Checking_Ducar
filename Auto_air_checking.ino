@@ -41,7 +41,6 @@ Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 #define STOP_BTN 0
 
 #define VAN_KHI_NEN 17
-#define VAN_KHI_NEN_2 16
 #define CHAN_CHUYEN 16
 #define DEN_DO 4
 #define DEN_XANH 2
@@ -433,6 +432,7 @@ void loop()
     {
       digitalWrite(CHAN_CHUYEN, HIGH);
     }
+    
 
   }
 
